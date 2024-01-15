@@ -14,6 +14,9 @@ public:
     void handleInput(SDL_Event &e);
     void move();
     void render(SDL_Renderer *renderer);
+     bool checkCollision();
+    void grow();
+    void spawnFood();
     int score=0;
 
 private:
@@ -27,7 +30,7 @@ Snake::Snake() {
     SDL_Rect head = {0, 0, TILE_SIZE, TILE_SIZE};
     body.push_back(head);
     direction = 3; // Start moving to the right
-   
+    spawnFood();
 }
 
 void Snake::handleInput(SDL_Event &e) {
@@ -67,13 +70,55 @@ void Snake:: move() {
     }
 
     body.insert(body.begin(), newHead);
+
+    if (newHead.x == food.x && newHead.y == food.y) {
+        grow();
+        spawnFood();
+    } else {
+        body.pop_back();
+    }
+
+    if (checkCollision()) {
+        std::cout << "Game Over!" << std::endl;
+        SDL_Quit();
+        exit(0);
+    }
 }
 
 void Snake::render(SDL_Renderer *renderer) {
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
     for (const auto &segment : body) {
         SDL_RenderFillRect(renderer, &segment);
+    } 
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Set color to red
+    SDL_RenderFillRect(renderer, &food);
+} 
+
+bool Snake::checkCollision() {
+    SDL_Rect head = body.front();
+
+    for (auto it = body.begin() + 1; it != body.end(); ++it) {
+        if (head.x == it->x && head.y == it->y) {
+            return true;
+        }
     }
+
+    if (head.x < 0 || head.x >= SCREEN_WIDTH || head.y < 0 || head.y >= SCREEN_HEIGHT) {
+        return true;
+    }
+
+    return false;
+} 
+
+void Snake::grow() {
+    body.push_back({-1, -1, TILE_SIZE, TILE_SIZE});
+}
+
+void Snake::spawnFood() {
+    food.x = rand() % (SCREEN_WIDTH / TILE_SIZE) * TILE_SIZE;
+    food.y = rand() % (SCREEN_HEIGHT / TILE_SIZE) * TILE_SIZE;
+    food.w = TILE_SIZE;
+    food.h = TILE_SIZE;
 }
 
 #undef main // Undefine main to prevent conflict
@@ -99,8 +144,7 @@ int WinMain(int argc, char* argv[]) {
         }
 
         snake.move();
-
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
         snake.render(renderer);
